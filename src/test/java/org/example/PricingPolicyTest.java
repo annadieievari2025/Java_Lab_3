@@ -7,13 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PricingPolicyTest {
 
-    private final StandardPricingPolicy policy = new StandardPricingPolicy();
+    private StandardPricingPolicy policy = new StandardPricingPolicy();
 
-    @ParameterizedTest(name = "Базова: {0}, Очікувана комерційна: {1}")
+    @ParameterizedTest(name = "Base: {0}, Expected: {1}")
     @CsvSource({
             "300.00, 500.00",
+            "500.00, 500.00",
             "5000.00, 5000.00",
-            "12000.00, 10800.00"
+            "10000.00, 10000.00",
+            "10000.01, 9000.01"
     })
     void testCalculateCommercialPrice(String baseCostStr, String expectedCostStr) {
         RepairOrder mockOrder = new RepairOrder(new Car("VIN111")) {
@@ -26,6 +28,6 @@ class PricingPolicyTest {
         BigDecimal actualCost = policy.calculateCommercialPrice(mockOrder);
 
         BigDecimal expectedCost = new BigDecimal(expectedCostStr);
-        assertEquals(0, expectedCost.compareTo(actualCost)); // 0 означає, що значення рівні
+        assertEquals(0, expectedCost.compareTo(actualCost));
     }
 }

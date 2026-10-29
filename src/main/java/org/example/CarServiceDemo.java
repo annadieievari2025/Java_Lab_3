@@ -8,22 +8,32 @@ public class CarServiceDemo {
         PricingPolicy policy = new StandardPricingPolicy();
         RepairOrderService service = new RepairOrderService(repo, policy);
 
-        System.out.println("=== Автосервіс v2 (SOLID) ===\n");
-        Car car = new Car("VIN123");
+        System.out.println("=== Autoservice ===\n");
+        Car car = new Car("VIN123456789");
 
         RepairOrder order = service.createOrder(car);
-        System.out.println("Створено замовлення №" + order.getId());
+        System.out.println("Created order №" + order.getId() + ", Status: " + order.getStatus());
 
-        service.addJobToOrder(order.getId(), new Job("Заміна двигуна", new BigDecimal("12000.00")));
+        service.addJobToOrder(order.getId(), new Job("Oil change", new BigDecimal("600.00")));
+        service.diagnoseOrder(order.getId());
+        System.out.println("After diagnostics, Status: " + order.getStatus());
+
         service.approveOrder(order.getId());
+        System.out.println("After approving, Status: " + order.getStatus());
+
+        service.startOrderExecution(order.getId());
+        System.out.println("In progress, Status: " + order.getStatus());
+
+        service.completeOrder(order.getId());
+        System.out.println("Completed, Status: " + order.getStatus());
 
         BigDecimal finalPrice = service.checkout(order.getId());
-        System.out.println("Комерційна вартість: " + finalPrice + " грн");
+        System.out.println("Total cost: " + finalPrice + " грн\n");
 
         try {
-            service.approveOrder(999);
+            service.approveOrder(order.getId());
         } catch (CarServiceException e) {
-            System.out.println("\n[Очікувана помилка] " + e.getMessage());
+            System.out.println("[Expected error] " + e.getMessage());
         }
     }
 }
