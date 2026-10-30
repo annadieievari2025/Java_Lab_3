@@ -1,4 +1,4 @@
-# Car Service Management System (Laboratory Work #2)
+# Car Service Management System (Laboratory Work #3)
 
 ## Overview
 This project is a console-based Car Service Management System written in Java. As part of Laboratory Work #2, the monolithic logic from Lab #1 was refactored and separated into layered components following SOLID principles and Dependency Injection (DI).
