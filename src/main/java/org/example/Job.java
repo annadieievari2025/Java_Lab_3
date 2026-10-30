@@ -21,7 +21,6 @@ public class Job {
     @JoinColumn(name = "order_id", nullable = false)
     private RepairOrder order;
 
-    // Конструктор для JPA
     protected Job() {
     }
 
