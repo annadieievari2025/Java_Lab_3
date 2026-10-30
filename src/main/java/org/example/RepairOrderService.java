@@ -19,6 +19,11 @@ public class RepairOrderService {
         this.pricingPolicy = pricingPolicy;
     }
 
+    @Transactional(readOnly = true)
+    public RepairOrder getOrder(Long orderId) {
+        return findOrder(orderId);
+    }
+
     @Transactional
     public RepairOrder createOrder(Car car) {
         RepairOrder order = new RepairOrder(car);

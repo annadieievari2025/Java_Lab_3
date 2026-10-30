@@ -1,37 +1,73 @@
 package org.example;
 
-import java.math.BigDecimal;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
-public class CarServiceDemo {
-    public static void main(String[] args) {
-        RepairOrderRepository repo = new InMemoryRepairOrderRepository();
-        PricingPolicy policy = new StandardPricingPolicy();
-        RepairOrderService service = new RepairOrderService(repo, policy);
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Component
+public class CarServiceDemo implements CommandLineRunner {
+
+    private final RepairOrderService service;
+
+    public CarServiceDemo(RepairOrderService service) {
+        this.service = service;
+    }
+
+    @Override
+    public void run(String... args) {
 
         System.out.println("=== Autoservice ===\n");
-        Car car = new Car("VIN123456789");
+
+        Client client = new Client("Oleh", "+380991234567");
+
+        String vin = UUID.randomUUID().toString();
+
+        Car car = new Car(
+                vin,
+                "Toyota",
+                "Corolla",
+                2002,
+                client
+        );
 
         RepairOrder order = service.createOrder(car);
-        System.out.println("Created order №" + order.getId() + ", Status: " + order.getStatus());
 
-        service.addJobToOrder(order.getId(), new Job("Oil change", new BigDecimal("600.00")));
-        service.diagnoseOrder(order.getId());
-        System.out.println("After diagnostics, Status: " + order.getStatus());
+        Long orderId = order.getId();
 
-        service.approveOrder(order.getId());
-        System.out.println("After approving, Status: " + order.getStatus());
+        System.out.println(
+                "Created order №" + orderId
+                        + ", Status: " + order.getStatus()
+        );
 
-        service.startOrderExecution(order.getId());
-        System.out.println("In progress, Status: " + order.getStatus());
+        service.addJobToOrder(
+                orderId,
+                new Job("Oil change", new BigDecimal("600.00"))
+        );
 
-        service.completeOrder(order.getId());
-        System.out.println("Completed, Status: " + order.getStatus());
+        service.diagnoseOrder(orderId);
+        System.out.println("After diagnostics, Status: "
+                + service.getOrder(orderId).getStatus());
 
-        BigDecimal finalPrice = service.checkout(order.getId());
+        service.approveOrder(orderId);
+        System.out.println("After approving, Status: "
+                + service.getOrder(orderId).getStatus());
+
+        service.startOrderExecution(orderId);
+        System.out.println("In progress, Status: "
+                + service.getOrder(orderId).getStatus());
+
+        service.completeOrder(orderId);
+        System.out.println("Completed, Status: "
+                + service.getOrder(orderId).getStatus());
+
+        BigDecimal finalPrice = service.checkout(orderId);
+
         System.out.println("Total cost: " + finalPrice + " грн\n");
 
         try {
-            service.approveOrder(order.getId());
+            service.approveOrder(orderId);
         } catch (CarServiceException e) {
             System.out.println("[Expected error] " + e.getMessage());
         }
