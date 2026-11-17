@@ -71,7 +71,9 @@ public class RepairOrderService {
     public void completeOrder(Long orderId) {
         RepairOrder order = findOrder(orderId);
 
-        order.complete();
+        BigDecimal finalPrice = pricingPolicy.calculateCommercialPrice(order);
+
+        order.complete(finalPrice);
 
         repository.save(order);
     }
