@@ -92,6 +92,21 @@ public class RepairOrder {
         job.setOrder(this);
     }
 
+    public void markJobDone(Long jobId) {
+        if (status != OrderStatus.IN_PROGRESS) {
+            throw new CarServiceException(
+                    "Jobs can be marked done only in IN_PROGRESS status."
+            );
+        }
+
+        jobs.stream()
+                .filter(j -> j.getId() != null && j.getId().equals(jobId))
+                .findFirst()
+                .orElseThrow(() -> new CarServiceException(
+                        "Job not found in order: " + jobId))
+                .markDone();
+    }
+
     public void diagnose() {
         if (status != OrderStatus.CREATED) {
             throw new CarServiceException(
@@ -142,10 +157,16 @@ public class RepairOrder {
     }
 
     public void complete(BigDecimal finalCost) {
-        if (status != OrderStatus.IN_PROGRESS
-                && status != OrderStatus.APPROVED) {
+        if (status != OrderStatus.IN_PROGRESS) {
             throw new CarServiceException(
-                    "IN_PROGRESS or APPROVED status only"
+                    "Completion is only possible in IN_PROGRESS status."
+            );
+        }
+
+        if (!jobs.stream().allMatch(Job::isDone)) {
+            long pending = jobs.stream().filter(j -> !j.isDone()).count();
+            throw new CarServiceException(
+                    "Can't complete order: " + pending + " job(s) not done yet."
             );
         }
 

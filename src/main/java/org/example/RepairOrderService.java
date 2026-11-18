@@ -1,6 +1,7 @@
 package org.example;
 
 import org.springframework.stereotype.Service;
+import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -24,6 +25,20 @@ public class RepairOrderService {
         return findOrder(orderId);
     }
 
+    @Transactional(readOnly = true)
+    public List<RepairOrder> getAllOrders() {
+        return repository.findAllByOrderByIdAsc();
+    }
+
+    @Transactional
+    public void markJobDone(Long orderId, Long jobId) {
+        RepairOrder order = findOrder(orderId);
+
+        order.markJobDone(jobId);
+
+        repository.save(order);
+    }
+
     @Transactional
     public RepairOrder createOrder(Car car) {
         RepairOrder order = new RepairOrder(car);
@@ -39,6 +54,23 @@ public class RepairOrderService {
 
         repository.save(order);
     }
+
+
+    @Transactional
+    public void addJobsToOrder(Long orderId, List<Job> jobs) {
+        if (jobs == null || jobs.isEmpty()) {
+            throw new CarServiceException(
+                    "Jobs list can't be null or empty"
+            );
+        }
+
+        RepairOrder order = findOrder(orderId);
+
+        jobs.stream().forEach(order::addJob);
+
+        repository.save(order);
+    }
+
 
     @Transactional
     public void diagnoseOrder(Long orderId) {

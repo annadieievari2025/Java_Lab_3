@@ -17,6 +17,9 @@ public class Job {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal cost;
 
+    @Column(nullable = false)
+    private boolean done = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private RepairOrder order;
@@ -55,6 +58,14 @@ public class Job {
 
     public RepairOrder getOrder() {
         return order;
+    }
+
+    public boolean isDone() {
+        return done;
+    }
+
+    void markDone() {
+        this.done = true;
     }
 
     void setOrder(RepairOrder order) {

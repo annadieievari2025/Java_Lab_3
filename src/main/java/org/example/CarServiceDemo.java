@@ -4,6 +4,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -20,56 +22,87 @@ public class CarServiceDemo implements CommandLineRunner {
 
         System.out.println("=== Autoservice ===\n");
 
+        // 1. Orders that survived a restart
+        System.out.println("--- Orders loaded from the database ---");
+        List<RepairOrder> existing = service.getAllOrders();
+        if (existing.isEmpty()) {
+            System.out.println("(none - first run)");
+        }
+        existing.stream()
+                .map(o -> "Order №" + o.getId()
+                        + ", car " + o.getCar().getVin()
+                        + ", status " + o.getStatus()
+                        + ", jobs: " + o.getJobs().size()
+                        + " (done: " + o.getJobs().stream().filter(Job::isDone).count() + ")"
+                        + ", final cost: " + o.getFinalCost())
+                .forEach(System.out::println);
+        System.out.println();
+
+        // 2. Create order
         Client client = new Client("Oleh", "+380991234567");
-
-        String vin = UUID.randomUUID().toString();
-
-        Car car = new Car(
-                vin,
-                "Toyota",
-                "Corolla",
-                2002,
-                client
-        );
+        Car car = new Car(UUID.randomUUID().toString(),
+                "Toyota", "Corolla", 2002, client);
 
         RepairOrder order = service.createOrder(car);
-
         Long orderId = order.getId();
+        System.out.println("Created order №" + orderId
+                + ", Status: " + order.getStatus());
 
-        System.out.println(
-                "Created order №" + orderId
-                        + ", Status: " + order.getStatus()
-        );
+        service.addJobToOrder(orderId,
+                new Job("Oil change", new BigDecimal("600.00")));
 
-        service.addJobToOrder(
-                orderId,
-                new Job("Oil change", new BigDecimal("600.00"))
-        );
+        // 3. Batch: valid
+        service.addJobsToOrder(orderId, List.of(
+                new Job("Brake pads", new BigDecimal("1500.00")),
+                new Job("Air filter", new BigDecimal("300.00"))));
+        System.out.println("After valid batch, jobs: "
+                + service.getOrder(orderId).getJobs().size());
+
+        // 4. Batch: invalid (null item) -> nothing saved
+        try {
+            service.addJobsToOrder(orderId, Arrays.asList(
+                    new Job("Should be rolled back", new BigDecimal("999.00")),
+                    null));
+        } catch (CarServiceException e) {
+            System.out.println("[Expected error] " + e.getMessage());
+        }
+        System.out.println("After failed batch, jobs: "
+                + service.getOrder(orderId).getJobs().size()
+                + " (unchanged)");
 
         service.diagnoseOrder(orderId);
-        System.out.println("After diagnostics, Status: "
-                + service.getOrder(orderId).getStatus());
-
         service.approveOrder(orderId);
-        System.out.println("After approving, Status: "
-                + service.getOrder(orderId).getStatus());
-
         service.startOrderExecution(orderId);
         System.out.println("In progress, Status: "
                 + service.getOrder(orderId).getStatus());
 
-        service.completeOrder(orderId);
-        System.out.println("Completed, Status: "
+        // 5. Negative: complete with unfinished jobs
+        try {
+            service.completeOrder(orderId);
+        } catch (CarServiceException e) {
+            System.out.println("[Expected error] " + e.getMessage());
+        }
+        System.out.println("Status after failed completion: "
                 + service.getOrder(orderId).getStatus());
 
-        BigDecimal finalPrice = service.checkout(orderId);
+        // 6. Finish all jobs, then complete
+        service.getOrder(orderId).getJobs().stream()
+                .map(Job::getId)
+                .forEach(jobId -> service.markJobDone(orderId, jobId));
 
-        System.out.println("Total cost: " + finalPrice + " грн\n");
+        service.completeOrder(orderId);
+        RepairOrder done = service.getOrder(orderId);
+        System.out.println("Completed, Status: " + done.getStatus()
+                + ", final cost: " + done.getFinalCost() + " грн"
+                + ", at " + done.getCompletedAt());
 
+        // 7. Negative: invalid operation on completed order
         try {
             service.approveOrder(orderId);
         } catch (CarServiceException e) {
             System.out.println("[Expected error] " + e.getMessage());
         }
+
+        System.out.println("\nRestart the application to see this order loaded from the database.");
     }
 }
