@@ -22,7 +22,6 @@ public class CarServiceDemo implements CommandLineRunner {
 
         System.out.println("=== Autoservice ===\n");
 
-        // 1. Orders that survived a restart
         System.out.println("--- Orders loaded from the database ---");
         List<RepairOrder> existing = service.getAllOrders();
         if (existing.isEmpty()) {
@@ -38,7 +37,6 @@ public class CarServiceDemo implements CommandLineRunner {
                 .forEach(System.out::println);
         System.out.println();
 
-        // 2. Create order
         Client client = new Client("Oleh", "+380991234567");
         Car car = new Car(UUID.randomUUID().toString(),
                 "Toyota", "Corolla", 2002, client);
@@ -51,14 +49,12 @@ public class CarServiceDemo implements CommandLineRunner {
         service.addJobToOrder(orderId,
                 new Job("Oil change", new BigDecimal("600.00")));
 
-        // 3. Batch: valid
         service.addJobsToOrder(orderId, List.of(
                 new Job("Brake pads", new BigDecimal("1500.00")),
                 new Job("Air filter", new BigDecimal("300.00"))));
         System.out.println("After valid batch, jobs: "
                 + service.getOrder(orderId).getJobs().size());
 
-        // 4. Batch: invalid (null item) -> nothing saved
         try {
             service.addJobsToOrder(orderId, Arrays.asList(
                     new Job("Should be rolled back", new BigDecimal("999.00")),
@@ -76,7 +72,6 @@ public class CarServiceDemo implements CommandLineRunner {
         System.out.println("In progress, Status: "
                 + service.getOrder(orderId).getStatus());
 
-        // 5. Negative: complete with unfinished jobs
         try {
             service.completeOrder(orderId);
         } catch (CarServiceException e) {
@@ -85,7 +80,6 @@ public class CarServiceDemo implements CommandLineRunner {
         System.out.println("Status after failed completion: "
                 + service.getOrder(orderId).getStatus());
 
-        // 6. Finish all jobs, then complete
         service.getOrder(orderId).getJobs().stream()
                 .map(Job::getId)
                 .forEach(jobId -> service.markJobDone(orderId, jobId));
@@ -96,7 +90,6 @@ public class CarServiceDemo implements CommandLineRunner {
                 + ", final cost: " + done.getFinalCost() + " грн"
                 + ", at " + done.getCompletedAt());
 
-        // 7. Negative: invalid operation on completed order
         try {
             service.approveOrder(orderId);
         } catch (CarServiceException e) {

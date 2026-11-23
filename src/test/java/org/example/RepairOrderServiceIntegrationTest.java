@@ -136,6 +136,50 @@ class RepairOrderServiceIntegrationTest {
     }
 
     @Test
+    void markJobDoneShouldBePersisted() {
+        Long orderId = inProgressOrder("600.00");
+        Long jobId = service.getOrder(orderId).getJobs().get(0).getId();
+
+        service.markJobDone(orderId, jobId);
+
+        assertTrue(service.getOrder(orderId).getJobs().get(0).isDone());
+    }
+
+    @Test
+    void markJobDoneShouldFailForUnknownJob() {
+        Long orderId = inProgressOrder("600.00");
+
+        assertThrows(CarServiceException.class, () -> service.markJobDone(orderId, -5L));
+    }
+
+    @Test
+    void markJobDoneShouldFailBeforeExecutionStarted() {
+        Long orderId = newOrder();
+        service.addJobToOrder(orderId, new Job("A", new BigDecimal("600.00")));
+        Long jobId = service.getOrder(orderId).getJobs().get(0).getId();
+
+        assertThrows(CarServiceException.class, () -> service.markJobDone(orderId, jobId));
+    }
+
+    @Test
+    void checkoutShouldApplyMinimumPriceForCheapOrder() {
+        Long orderId = inProgressOrder("100.00");
+
+        assertEquals(0, new BigDecimal("500.00").compareTo(service.checkout(orderId)));
+    }
+
+    @Test
+    void completeOrderShouldApplyDiscountForExpensiveOrder() {
+        Long orderId = inProgressOrder("6000.00", "6000.00");
+        finishAllJobs(orderId);
+
+        service.completeOrder(orderId);
+
+        assertEquals(0, new BigDecimal("10800.00")
+                .compareTo(service.getOrder(orderId).getFinalCost()));
+    }
+
+    @Test
     void getOrderShouldFailForUnknownId() {
         assertThrows(CarServiceException.class, () -> service.getOrder(-1L));
     }
